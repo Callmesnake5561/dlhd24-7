@@ -8,19 +8,21 @@ const EPG_URL = "https://epg.iptv-org.com/epg.xml.gz";
 async function generatePlaylist() {
     try {
         const { data } = await axios.get(DLHD_URL);
-        const $ = cheerio.load(data);
 
         let playlist = `#EXTM3U url-tvg="${EPG_URL}"\n\n`;
 
-        // DLHD uses onclick="playChannel('name','url')"
-        const regex = /playChannel\(['"](.+?)['"],['"](.+?\.m3u8)['"]\)/g;
+        // DLHD uses: onclick="window.open('STREAM_URL','_blank')"
+        const regex = /window\.open\(['"](.+?\.m3u8)['"]/g;
         let match;
 
         while ((match = regex.exec(data)) !== null) {
-            const name = match[1].trim();
-            const url = match[2].trim();
+            const url = match[1].trim();
 
-            const cleanName = name.replace("24/7", "").trim();
+            // Extract name from URL
+            const nameMatch = url.match(/\/([^\/]+)\.m3u8/);
+            const rawName = nameMatch ? nameMatch[1] : "DLHD Channel";
+
+            const cleanName = rawName.replace(/_/g, " ").trim();
             const tvgId = cleanName.toLowerCase().replace(/[^a-z0-9]/g, "");
 
             playlist += `#EXTINF:-1 tvg-id="${tvgId}" tvg-name="${cleanName}" group-title="DLHD 24/7", ${cleanName}\n`;
