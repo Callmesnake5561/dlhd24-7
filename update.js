@@ -10,23 +10,22 @@ async function generatePlaylist() {
         const { data } = await axios.get(DLHD_URL);
         const $ = cheerio.load(data);
 
-        let playlist = "#EXTM3U url-tvg=\"" + EPG_URL + "\"\n\n";
+        let playlist = `#EXTM3U url-tvg="${EPG_URL}"\n\n`;
 
-        $("a").each((i, el) => {
-            const link = $(el).attr("href");
-            const name = $(el).text().trim();
+        // DLHD uses onclick="playChannel('name','url')"
+        const regex = /playChannel\(['"](.+?)['"],['"](.+?\.m3u8)['"]\)/g;
+        let match;
 
-            if (link && link.includes(".m3u8")) {
-                const cleanName = name.replace("24/7", "").trim();
+        while ((match = regex.exec(data)) !== null) {
+            const name = match[1].trim();
+            const url = match[2].trim();
 
-                const tvgId = cleanName
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]/g, "");
+            const cleanName = name.replace("24/7", "").trim();
+            const tvgId = cleanName.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-                playlist += `#EXTINF:-1 tvg-id="${tvgId}" tvg-name="${cleanName}" group-title="DLHD 24/7", ${cleanName}\n`;
-                playlist += `${link}\n\n`;
-            }
-        });
+            playlist += `#EXTINF:-1 tvg-id="${tvgId}" tvg-name="${cleanName}" group-title="DLHD 24/7", ${cleanName}\n`;
+            playlist += `${url}\n\n`;
+        }
 
         fs.writeFileSync("playlist.m3u", playlist);
         console.log("Playlist updated successfully.");
